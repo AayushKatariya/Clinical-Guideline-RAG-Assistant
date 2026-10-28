@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+
+# Data (corpus and derived artefacts are not committed)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/indexes/*
+!data/indexes/.gitkeep
+data/structured/*.csv
+!data/structured/.gitkeep
+data/eval/*.draft.jsonl
+data/metadata/
+
+# Experiment tracking / outputs
+mlruns/
+mlflow.db
+mlartifacts/
+outputs/
+.ragas_cache/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

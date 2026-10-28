@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinical Guideline Assistant</title>
+<style>
+:root {
+  --bg: #f5f6f8; --panel: #ffffff; --text: #1b2330; --muted: #5d6877; --border: #dce1e7;
+  --accent: #1f5fd1; --accent-soft: #e7effc; --ok: #17733a; --ok-soft: #e4f3e9;
+  --warn: #8a5a00; --warn-soft: #fff3d6; --bad: #b42318; --bad-soft: #fdeceb;
+  --code: #f0f2f5; --flash: #fff6c2; --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1318; --panel: #171c23; --text: #e5e8ed; --muted: #9aa4b0; --border: #2a323c;
+    --accent: #7aa7f7; --accent-soft: #1b2738; --ok: #57c47c; --ok-soft: #16291d;
+    --warn: #e0b13f; --warn-soft: #2c2414; --bad: #f2776d; --bad-soft: #321918;
+    --code: #10151b; --flash: #3a3412;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex; flex-direction: column; min-height: 100vh;
+}
+.wrap { width: 100%; max-width: 880px; margin: 0 auto; padding: 0 16px; }
+header.top { border-bottom: 1px solid var(--border); background: var(--panel); }
+header.top .wrap { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline;
+  justify-content: space-between; padding-top: 14px; padding-bottom: 12px; }
+h1 { font-size: 18px; margin: 0; }
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.status { color: var(--muted); font-size: 13px; }
+.status.down { color: var(--bad); }
+main { flex: 1; padding: 20px 0 8px; }
+.welcome { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; }
+.welcome p { margin: 0 0 12px; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.example { border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13.5px; cursor: pointer;
+  text-align: left; }
+.example:hover { border-color: var(--accent); }
+.example small { color: var(--muted); }
+.turn { margin: 18px 0 26px; }
+.q { margin-left: auto; width: fit-content; max-width: 85%; background: var(--accent);
+  color: #fff; padding: 9px 14px; border-radius: 14px 14px 4px 14px; white-space: pre-wrap;
+  overflow-wrap: anywhere; }
+@media (prefers-color-scheme: dark) { .q { color: #0f1318; } }
+.card { margin-top: 10px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 18px; }
+.card.refused { border-left: 4px solid var(--warn); }
+.card.error { border-left: 4px solid var(--bad); color: var(--bad); }
+.card.pending { color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border);
+  border-top-color: var(--accent); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.badge { font-size: 12px; border-radius: 6px; padding: 2px 8px; background: var(--code);
+  color: var(--muted); }
+.badge.ok { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.badge.warn { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+.answer p, .answer ul, .answer ol { margin: 0 0 10px; }
+.answer ul, .answer ol { padding-left: 22px; }
+.answer li { margin: 3px 0; }
+.answer h4 { margin: 12px 0 6px; font-size: 15px; }
+.answer code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.cite { display: inline-block; font: 600 11.5px/1 ui-monospace, Consolas, monospace;
+  color: var(--accent); background: var(--accent-soft); border: 1px solid transparent;
+  border-radius: 5px; padding: 3px 5px; margin: 0 1px; vertical-align: 1px; cursor: pointer; }
+button.cite:hover, button.cite:focus-visible { border-color: var(--accent); outline: none; }
+.cite.missing { color: var(--bad); background: var(--bad-soft); cursor: help;
+  text-decoration: line-through; }
+.note { color: var(--muted); font-size: 13.5px; margin: 0 0 10px; }
+.steps { color: var(--muted); font-size: 13px; margin: 0 0 10px; padding-left: 18px; }
+.sources h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); margin: 14px 0 6px; }
+details.src { border: 1px solid var(--border); border-radius: 8px; margin: 6px 0;
+  background: var(--panel); transition: background-color .6s; }
+details.src.flash { background: var(--flash); }
+details.src summary { cursor: pointer; padding: 8px 10px; display: flex; gap: 8px;
+  align-items: baseline; list-style: none; }
+details.src summary::-webkit-details-marker { display: none; }
+details.src summary::before { content: "▸"; color: var(--muted); font-size: 11px; }
+details.src[open] summary::before { content: "▾"; }
+.sid { font: 600 12px ui-monospace, Consolas, monospace; color: var(--accent); flex: none; }
+.label { display: flex; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
+.label .title { font-weight: 600; }
+.label .section, .label .org { color: var(--muted); font-size: 13px; }
+.passage { margin: 0; padding: 4px 12px 12px 30px; white-space: pre-wrap; font-size: 14px;
+  overflow-wrap: anywhere; }
+pre.sql { margin: 0 12px 8px 30px; padding: 8px 10px; background: var(--code); border-radius: 6px;
+  font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.table-wrap { overflow-x: auto; margin: 0 12px 12px 30px; }
+table { border-collapse: collapse; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+th { background: var(--code); }
+.dbnote { margin: 0 12px 10px 30px; color: var(--muted); font-size: 13px; }
+details.others { margin-top: 10px; }
+details.others > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+form.composer { position: sticky; bottom: 0; background: var(--bg);
+  border-top: 1px solid var(--border); padding: 12px 0 10px; }
+form.composer .wrap { display: flex; gap: 10px; align-items: flex-end; }
+textarea { flex: 1; resize: vertical; min-height: 46px; max-height: 40vh; font: inherit;
+  color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; }
+textarea:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent);
+  outline-offset: 1px; }
+.controls { display: flex; flex-direction: column; gap: 6px; }
+select { font: inherit; font-size: 13px; color: var(--text); background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px; padding: 5px 6px; max-width: 190px; }
+button.send { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 8px 18px;
+  background: var(--accent); color: #fff; cursor: pointer; }
+@media (prefers-color-scheme: dark) { button.send { color: #0f1318; } }
+button.send:disabled { opacity: .55; cursor: progress; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+footer { color: var(--muted); font-size: 12px; text-align: center; padding: 4px 16px 12px; }
+@media (max-width: 560px) {
+  form.composer .wrap { flex-direction: column; align-items: stretch; }
+  .controls { flex-direction: row; justify-content: space-between; }
+  .q { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Clinical Guideline Assistant</h1>
+      <p class="sub">Answers only from the indexed clinical guidelines, with citations, or declines.</p>
+    </div>
+    <div id="status" class="status" role="status">Connecting…</div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" id="thread" aria-live="polite">
+    <section class="welcome" id="welcome">
+      <p>Ask a clinical question. Every statement in an answer cites the guideline passage it
+        came from; click a citation such as <span class="cite">S1</span> to read that passage.</p>
+      <div class="examples" id="examples"></div>
+    </section>
+  </div>
+</main>
+
+<form class="composer" id="ask-form" autocomplete="off">
+  <div class="wrap">
+    <textarea id="question" rows="2" maxlength="2000" aria-label="Question"
+      placeholder="Ask about a clinical guideline…"></textarea>
+    <div class="controls">
+      <select id="prompt" aria-label="Prompt version"></select>
+      <button class="send" id="send" type="submit">Ask</button>
+    </div>
+  </div>
+  <div class="wrap hint">Enter to ask · Shift+Enter for a new line</div>
+</form>
+<footer>Research project. Not a medical device and not medical advice.</footer>
+
+<script>
+"use strict";
+
+// ------------------------------------------------------------- rendering helpers
+
+const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ESCAPES[c]);
+}
+
+// One evidence block per context string: "[S1] header\nbody" or "[DB1] Database query: …\ntable".
+function parseEvidence(contexts) {
+  const out = [];
+  for (const ctx of contexts || []) {
+    const m = String(ctx).match(/^\[((?:S|DB)\d+)\]\s*([^\n]*)\n?([\s\S]*)$/);
+    if (m) {
+      out.push({ id: m[1], header: m[2].trim(), body: m[3].trim(),
+                 kind: m[1].startsWith("DB") ? "database" : "guideline" });
+    }
+  }
+  return out;
+}
+
+// "Title, § Section (WHO · 2019)" -> parts; the organisation/year suffix is optional.
+function splitHeader(header) {
+  let rest = header, meta = "";
+  const m = header.match(/^(.*\S)\s+\(([^()]*)\)$/);
+  if (m) { rest = m[1]; meta = m[2]; }
+  const at = rest.indexOf(", § ");
+  return at < 0 ? { title: rest, section: "", meta }
+                : { title: rest.slice(0, at), section: rest.slice(at + 4), meta };
+}
+
+const CITE_GROUP = /\[((?:S|DB)\d+(?:\s*[,;]\s*(?:S|DB)\d+)*)\]/g;
+
+// `text` must already be HTML-escaped.
+function renderInline(text, known, turnId) {
+  return text
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(CITE_GROUP, (_, ids) => ids.split(/\s*[,;]\s*/).map((id) => known.has(id)
+      ? `<button type="button" class="cite" data-target="${turnId}-${id}" ` +
+        `aria-label="Show source ${id}">${id}</button>`
+      : `<span class="cite missing" title="Not in the evidence shown to the model">${id}</span>`
+    ).join(""));
+}
+
+// Small, safe Markdown subset: paragraphs, bullet/numbered lists, headings, bold, code.
+function renderMarkdown(md, known, turnId) {
+  const out = [];
+  let para = [];
+  let list = null;
+  const flushPara = () => {
+    if (para.length) out.push(`<p>${renderInline(para.join(" "), known, turnId)}</p>`);
+    para = [];
+  };
+  const flushList = () => {
+    if (list) {
+      const items = list.items.map((i) => `<li>${renderInline(i, known, turnId)}</li>`).join("");
+      out.push(`<${list.tag}>${items}</${list.tag}>`);
+    }
+    list = null;
+  };
+  const addItem = (tag, item) => {
+    flushPara();
+    if (!list || list.tag !== tag) { flushList(); list = { tag, items: [] }; }
+    list.items.push(item);
+  };
+  for (const raw of escapeHtml(md).split(/\r?\n/)) {
+    const line = raw.trim();
+    let m;
+    if (!line) { flushPara(); flushList(); }
+    else if ((m = line.match(/^[*\-•]\s+(.*)$/))) addItem("ul", m[1]);
+    else if ((m = line.match(/^\d+[.)]\s+(.*)$/))) addItem("ol", m[1]);
+    else if ((m = line.match(/^#{1,6}\s+(.*)$/))) {
+      flushPara(); flushList(); out.push(`<h4>${renderInline(m[1], known, turnId)}</h4>`);
+    } else { flushList(); para.push(line); }
+  }
+  flushPara(); flushList();
+  return out.join("");
+}
+
+// Markdown table from the SQL tool -> HTML table (anything else is shown as text).
+function renderTable(md) {
+  const lines = String(md).trim().split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2 || !lines[0].trim().startsWith("|")) {
+    return `<p class="dbnote">${escapeHtml(md)}</p>`;
+  }
+  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => escapeHtml(c.trim()));
+  const body = lines.slice(2);
+  const rows = body.filter((l) => l.trim().startsWith("|")).map(cells);
+  const notes = body.filter((l) => !l.trim().startsWith("|"));
+  return `<div class="table-wrap"><table><thead><tr>` +
+    cells(lines[0]).map((h) => `<th>${h}</th>`).join("") + `</tr></thead><tbody>` +
+    rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("") +
+    `</tbody></table></div>` + notes.map((n) => `<p class="dbnote">${escapeHtml(n)}</p>`).join("");
+}
+
+function sourceHtml(e, turnId) {
+  const id = `${turnId}-${e.id}`;
+  if (e.kind === "database") {
+    const sql = e.header.replace(/^Database query:\s*/, "");
+    return `<details class="src db" id="${id}"><summary><span class="sid">${e.id}</span>` +
+      `<span class="label"><span class="title">Database query</span></span></summary>` +
+      `<pre class="sql">${escapeHtml(sql)}</pre>${renderTable(e.body)}</details>`;
+  }
+  const h = splitHeader(e.header);
+  return `<details class="src" id="${id}"><summary><span class="sid">${e.id}</span>` +
+    `<span class="label"><span class="title">${escapeHtml(h.title)}</span>` +
+    (h.section ? `<span class="section">§ ${escapeHtml(h.section)}</span>` : "") +
+    (h.meta ? `<span class="org">${escapeHtml(h.meta)}</span>` : "") +
+    `</span></summary><div class="passage">${escapeHtml(e.body)}</div></details>`;
+}
+
+const REFUSAL_NOTES = {
+  no_evidence: "No guideline passage was relevant enough, so the assistant declined rather than guess.",
+  model: "The assistant judged the evidence insufficient or the question out of scope.",
+};
+
+function stepText(call) {
+  const args = call.arguments || {};
+  if (call.name === "search_guidelines") {
+    return `Searched the guidelines again: “${escapeHtml(args.query || "")}”` +
+      (args.organization ? ` (${escapeHtml(args.organization)} only)` : "");
+  }
+  if (call.name === "query_clinical_database") {
+    return `Queried the structured database: “${escapeHtml(args.question || "")}”`;
+  }
+  return escapeHtml(call.name);
+}
+
+function renderResponse(data, turnId) {
+  const evidence = parseEvidence(data.contexts);
+  const byId = new Map(evidence.map((e) => [e.id, e]));
+  const cited = (data.citations || []).map((c) => c.source_id).filter((id) => byId.has(id));
+  const citedSet = new Set(cited);
+  const others = evidence.filter((e) => !citedSet.has(e.id));
+
+  const badges = [data.refused
+    ? `<span class="badge warn">Declined</span>`
+    : `<span class="badge ok">Answered</span>`];
+  if (data.prompt_version) badges.push(`<span class="badge">prompt ${escapeHtml(data.prompt_version)}</span>`);
+  if (typeof data.latency_s === "number") badges.push(`<span class="badge">${data.latency_s.toFixed(1)} s</span>`);
+  // Passage relevance only means something when the answer rests on guideline passages
+  // (a database-only answer can be right while every passage scores low).
+  if (typeof data.max_rerank_score === "number" && cited.some((id) => id.startsWith("S"))) {
+    badges.push(`<span class="badge" title="Cross-encoder relevance of the best passage, 0 to 1">` +
+      `best match ${data.max_rerank_score.toFixed(2)}</span>`);
+  }
+  const steps = (data.tool_calls || []).map((c) => `<li>${stepText(c)}</li>`).join("");
+
+  return `<div class="card${data.refused ? " refused" : ""}">` +
+    `<div class="meta">${badges.join("")}</div>` +
+    `<div class="answer">${renderMarkdown(data.answer || "", new Set(byId.keys()), turnId)}</div>` +
+    (data.refused && REFUSAL_NOTES[data.refusal_reason]
+      ? `<p class="note">${REFUSAL_NOTES[data.refusal_reason]}</p>` : "") +
+    (steps ? `<ul class="steps">${steps}</ul>` : "") +
+    (cited.length
+      ? `<section class="sources"><h3>Sources</h3>${cited.map((id) => sourceHtml(byId.get(id), turnId)).join("")}</section>`
+      : "") +
+    (others.length
+      ? `<details class="others"><summary>${cited.length ? "Other evidence" : "Evidence"} shown to the model (${others.length})</summary>` +
+        others.map((e) => sourceHtml(e, turnId)).join("") + `</details>`
+      : "") +
+    `</div>`;
+}
+
+// ------------------------------------------------------------- page wiring
+
+const EXAMPLES = [
+  ["Which uterotonic is recommended to prevent postpartum haemorrhage?", ""],
+  ["Should household contacts of people with infectious tuberculosis be screened?", ""],
+  ["Is apixaban recommended to prevent stroke in non-valvular atrial fibrillation?", ""],
+  ["How many NICE guidelines are in the database?", "uses the database"],
+  ["What is the capital of Australia?", "off-topic, should decline"],
+];
+
+function init() {
+  const $ = (sel) => document.querySelector(sel);
+  const form = $("#ask-form"), input = $("#question"), send = $("#send"), select = $("#prompt");
+  const thread = $("#thread");
+  let turns = 0;
+  let busy = false;
+
+  $("#examples").innerHTML = EXAMPLES.map(([q, note], i) =>
+    `<button type="button" class="example" data-i="${i}">${escapeHtml(q)}` +
+    (note ? ` <small>· ${escapeHtml(note)}</small>` : "") + `</button>`).join("");
+  $("#examples").addEventListener("click", (e) => {
+    const b = e.target.closest(".example");
+    if (b) { input.value = EXAMPLES[Number(b.dataset.i)][0]; form.requestSubmit(); }
+  });
+
+  Promise.all([fetch("/health"), fetch("/prompts")])
+    .then(async ([h, p]) => {
+      if (!h.ok) throw new Error(`HTTP ${h.status}`);
+      const health = await h.json();
+      const prompts = p.ok ? await p.json() : [];
+      $("#status").textContent =
+        `${Number(health.n_chunks).toLocaleString()} passages indexed · database tool ` +
+        `${health.sql_tool ? "on" : "off"}`;
+      select.innerHTML = prompts.map((pr) =>
+        `<option value="${escapeHtml(pr.version)}" title="${escapeHtml(pr.description)}"` +
+        `${pr.version === health.prompt_version ? " selected" : ""}>` +
+        `${escapeHtml(pr.version)} · ${escapeHtml(pr.name)}` +
+        `${pr.version === health.prompt_version ? " (default)" : ""}</option>`).join("");
+    })
+    .catch(() => {
+      $("#status").textContent = "Server not reachable; is `clinrag serve` running?";
+      $("#status").classList.add("down");
+    });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  thread.addEventListener("click", (e) => {
+    const b = e.target.closest("button.cite");
+    if (!b) return;
+    const src = document.getElementById(b.dataset.target);
+    if (!src) return;
+    src.open = true;
+    src.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    src.classList.remove("flash");
+    void src.offsetWidth; // restart the highlight
+    src.classList.add("flash");
+    setTimeout(() => src.classList.remove("flash"), 1400);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const question = input.value.trim();
+    if (busy || question.length < 3) return;
+    busy = true;
+    send.disabled = true;
+    $("#welcome")?.remove();
+    const turnId = `t${++turns}`;
+    const turn = document.createElement("article");
+    turn.className = "turn";
+    turn.innerHTML = `<div class="q">${escapeHtml(question)}</div>` +
+      `<div class="card pending"><span class="spinner"></span>` +
+      `Searching the guidelines and drafting an answer…</div>`;
+    thread.append(turn);
+    turn.scrollIntoView({ behavior: "smooth", block: "start" });
+    input.value = "";
+    try {
+      const body = { question };
+      if (select.value) body.prompt_version = select.value;
+      const res = await fetch("/ask", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(await errorText(res));
+      turn.querySelector(".card").outerHTML = renderResponse(await res.json(), turnId);
+    } catch (err) {
+      const card = turn.querySelector(".card");
+      card.className = "card error";
+      card.textContent = err.message || String(err);
+      input.value = question;
+    } finally {
+      busy = false;
+      send.disabled = false;
+      input.focus();
+    }
+  });
+}
+
+async function errorText(res) {
+  if (res.status === 503) return "The assistant is still loading its models. Try again in a few seconds.";
+  if (res.status === 422) return "Please enter a question of 3 to 2,000 characters.";
+  if (res.status === 404) {
+    try { return (await res.json()).detail; } catch { return "Not found."; }
+  }
+  return `The server hit an error (HTTP ${res.status}). With Gemini's free tier this is ` +
+    "usually a rate limit: wait a minute and ask again. Details are in the terminal running `clinrag serve`.";
+}
+
+init();
+</script>
+</body>
+</html>

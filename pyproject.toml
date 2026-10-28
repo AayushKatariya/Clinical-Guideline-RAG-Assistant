@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clinrag"
+version = "0.1.0"
+description = "Hybrid RAG assistant over clinical practice guidelines (BM25 + dense + cross-encoder reranking) with a text-to-SQL tool over Postgres and a RAGAS/LangSmith/MLflow evaluation harness."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["rag", "retrieval", "bm25", "reranking", "text-to-sql", "ragas", "clinical-guidelines"]
+dependencies = [
+  "numpy>=1.26",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "python-dotenv>=1.0",
+  "pyyaml>=6.0",
+  "rank-bm25>=0.2.2",
+  "faiss-cpu>=1.8",
+  "pypdf>=4.0",
+  "beautifulsoup4>=4.12",
+  "openai>=1.40",
+  "langsmith>=0.3",
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.1",
+  "sqlglot>=25.0",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "typer>=0.12",
+  "rich>=13.0",
+]
+
+[project.optional-dependencies]
+# Local embedding + cross-encoder models (pulls in torch).
+models = [
+  "sentence-transformers>=3.0",
+]
+# Evaluation harness. ragas 0.4 needs langchain-community < 0.4 at import time.
+eval = [
+  "ragas>=0.4,<0.5",
+  "langchain-community>=0.3,<0.4",
+  "mlflow>=3.1",
+]
+# Pulling guideline corpora from the Hugging Face Hub.
+data = [
+  "datasets>=2.19",
+]
+dev = [
+  "pytest>=8.0",
+  "httpx>=0.27",
+  "ruff>=0.5",
+]
+all = ["clinrag[models,eval,data,dev]"]
+
+[project.scripts]
+clinrag = "clinrag.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clinrag"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+# E501: formatter owns line length. B008: typer options in defaults. SIM905: word lists.
+ignore = ["E501", "B008", "SIM905"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["clinrag"]
+known-local-folder = ["fakes", "conftest"]
